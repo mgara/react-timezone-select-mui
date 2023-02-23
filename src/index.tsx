@@ -1,5 +1,11 @@
 import * as React from 'react'
-import Select from 'react-select'
+import {
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  Select,
+  SelectChangeEvent,
+} from '@mui/material'
 import spacetime from 'spacetime'
 import soft from 'timezone-soft'
 import allTimezones from './timezone-list.js'
@@ -9,6 +15,8 @@ import type {
   ITimezoneOption,
   ILabelStyle,
 } from './types/timezone'
+import MenuItem from '@mui/material/MenuItem'
+import { Chip, ListItemIcon, ListItemText, TextField } from '@mui/material'
 
 export { allTimezones }
 export type { ITimezone, ITimezoneOption, Props, ILabelStyle }
@@ -18,7 +26,11 @@ const TimezoneSelect = ({
   onBlur,
   onChange,
   labelStyle = 'original',
+  optionStyle = 'original',
   timezones,
+  label,
+  helperText,
+  variant,
   ...props
 }: Props) => {
   if (!timezones) timezones = allTimezones
@@ -30,6 +42,7 @@ const TimezoneSelect = ({
         const tzStrings = soft(zone[0])
 
         let label = ''
+        let render = ''
         let abbr = now.isDST()
           ? // @ts-expect-error
             tzStrings[0].daylight?.abbr
@@ -42,9 +55,10 @@ const TimezoneSelect = ({
         const min = tz.current.offset * 60
         const hr =
           `${(min / 60) ^ 0}:` + (min % 60 === 0 ? '00' : Math.abs(min % 60))
-        const prefix = `(GMT${hr.includes('-') ? hr : `+${hr}`}) ${zone[1]}`
+        const prefix = `${zone[1]}`
+        const GMTDiff = `${hr.includes('-') ? hr : `+${hr}`}`
 
-        switch (labelStyle) {
+        switch (optionStyle) {
           case 'original':
             label = prefix
             break
@@ -58,12 +72,34 @@ const TimezoneSelect = ({
             label = `${prefix}`
         }
 
+        switch (labelStyle) {
+          case 'original':
+            render = prefix
+            break
+          case 'altName':
+            render = `${prefix} ${altName?.length ? `(${altName})` : ''}`
+            break
+          case 'abbrev':
+            render = `${prefix} ${abbr?.length < 5 ? `(${abbr})` : ''}`
+            break
+          case 'shortAltName':
+            render = `${altName?.length ? `${altName}` : `${prefix}`}`
+            break
+          case 'shortAbbrev':
+            render = `${abbr?.length ? `${abbr}` : `${prefix}`}`
+            break
+          default:
+            render = `${prefix}`
+        }
+
         selectOptions.push({
           value: tz.name,
-          label: label,
+          label,
+          render,
           offset: tz.current.offset,
           abbrev: abbr,
-          altName: altName,
+          altName,
+          GMTDiff,
         })
 
         return selectOptions
@@ -71,7 +107,8 @@ const TimezoneSelect = ({
       .sort((a: ITimezoneOption, b: ITimezoneOption) => a.offset - b.offset)
   }, [labelStyle, timezones])
 
-  const handleChange = (tz: ITimezoneOption) => {
+  const handleChange = (event: SelectChangeEvent) => {
+    const tz: ITimezoneOption = event.target.value as unknown as ITimezoneOption
     onChange && onChange(tz)
   }
 
@@ -130,7 +167,9 @@ const TimezoneSelect = ({
   }
 
   const parseTimezone = (zone: ITimezone) => {
-    if (typeof zone === 'object' && zone.value && zone.label) return zone
+    if (zone === null) return
+    if (typeof zone === 'object' && zone.value && zone.label)
+      return getOptions.find(tz => tz.value === zone.value)
     if (typeof zone === 'string') {
       return (
         getOptions.find(tz => tz.value === zone) ||
@@ -142,13 +181,34 @@ const TimezoneSelect = ({
   }
 
   return (
-    <Select
-      value={parseTimezone(value)}
-      onChange={handleChange}
-      options={getOptions}
-      onBlur={onBlur}
-      {...props}
-    />
+    <FormControl variant={variant}>
+      {!!label && (
+        <InputLabel id="timezone-select-label-mui">{label}</InputLabel>
+      )}
+      <Select
+        labelId="timezone-select-label-mui"
+        id="select-tz-mui-id"
+        value={parseTimezone(value)}
+        onChange={handleChange}
+        renderValue={value => <>{value.render}</>}
+        {...props}
+      >
+        {getOptions.map((tz, idx) => (
+          //@ts-ignore
+          <MenuItem key={idx} value={tz}>
+            <ListItemIcon>
+              <Chip
+                size="small"
+                label={`GMT${tz.GMTDiff}`}
+                style={{ marginRight: 2 }}
+              />
+            </ListItemIcon>
+            <ListItemText primary={tz.label} />
+          </MenuItem>
+        ))}
+      </Select>
+      {!!helperText && <FormHelperText>{helperText}</FormHelperText>}
+    </FormControl>
   )
 }
 

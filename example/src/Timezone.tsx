@@ -48,6 +48,9 @@ const Timezone = () => {
             'America/Lima': 'Pittsburgh',
             'Europe/Berlin': 'Frankfurt',
           }}
+          helperText="Defaults to the browser's TZ"
+          label="Timezone"
+          variant="standard"
         />
       </div>
       <div className="label-style-select" onChange={handleLabelChange}>
@@ -74,6 +77,24 @@ const Timezone = () => {
         <label htmlFor="abbrev">
           <input type="radio" id="abbrev" name="labelStyle" value={'abbrev'} />
           abbrev
+        </label>
+        <label htmlFor="abbrev">
+          <input
+            type="radio"
+            id="abbrev"
+            name="labelStyle"
+            value={'shortAltName'}
+          />
+          shortAltName
+        </label>
+        <label htmlFor="abbrev">
+          <input
+            type="radio"
+            id="abbrev"
+            name="labelStyle"
+            value={'shortAbbrev'}
+          />
+          shortAbbrev
         </label>
       </div>
       <div className="code">
